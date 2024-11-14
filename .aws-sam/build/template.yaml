@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  RetrieveApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowMethods: '''GET,OPTIONS'''
+        AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+        AllowOrigin: '''*'''
+  RetrieveFunc:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      CodeUri: RetrieveFunc
+      MemorySize: 128
+      Timeout: 3
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Ref: VisitTable
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: VisitTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: RetrieveApi
+            Path: /hello
+            Method: GET
+        CorsPreflightEvent:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: RetrieveApi
+            Path: /{proxy+}
+            Method: OPTIONS
+    Metadata:
+      SamResourceId: RetrieveFunc
+  VisitTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: visitorctr
+      AttributeDefinitions:
+      - AttributeName: page
+        AttributeType: S
+      KeySchema:
+      - AttributeName: page
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+  InitLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: InitLambda
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Timeout: 30
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: VisitTable
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Ref: VisitTable
+    Metadata:
+      SamResourceId: InitLambda
+  InitializeTb:
+    Type: Custom::InitializeTb
+    DependsOn: VisitTable
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+        - InitLambda
+        - Arn
+Outputs:
+  ApiEndpoint:
+    Description: API URL
+    Value:
+      Fn::Sub: https://${RetrieveApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello
