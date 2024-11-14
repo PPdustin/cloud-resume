@@ -29,7 +29,7 @@ Resources:
           Type: Api
           Properties:
             RestApiId: !Ref RetrieveApi
-            Path: /hello
+            Path: /retrieve
             Method: GET
         CorsPreflightEvent:
           Type: Api
@@ -77,4 +77,4 @@ Resources:
 Outputs:
   ApiEndpoint:
     Description: "API URL"
-    Value: !Sub "https://${RetrieveApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello"
+    Value: !Sub "https://${RetrieveApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/retrieve"
